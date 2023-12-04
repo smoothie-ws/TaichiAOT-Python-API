@@ -1,5 +1,4 @@
 # TaichiAOT-Python-API
-## Taichi C-API Functions
 
 ### function `get_version`()
 > *Get the current version of Taichi C API.*
