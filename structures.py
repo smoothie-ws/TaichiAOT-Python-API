@@ -1,7 +1,7 @@
 from ctypes import Structure, c_uint32, c_uint64, c_bool, c_float, c_uint8, Union, c_uint16, c_int32, c_char_p
 
-from PyTaichi.aliases import TiBool
-from PyTaichi.handles import TiMemory, TiImage, TiSampler
+from .aliases import TiBool
+from .handles import TiMemory, TiImage, TiSampler
 
 
 class TiCapabilityLevelInfo(Structure):

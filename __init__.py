@@ -1,12 +1,12 @@
 from ctypes import byref, create_string_buffer, string_at, cast
 from typing import List, Tuple
 
-from PyTaichi.aliases import *
-from PyTaichi.definitions import *
-from PyTaichi.enumerations import *
-from PyTaichi.functions import *
-from PyTaichi.handles import *
-from PyTaichi.structures import *
+from .aliases import *
+from .definitions import *
+from .enumerations import *
+from .functions import *
+from .handles import *
+from .structures import *
 
 
 def get_version() -> c_uint32:

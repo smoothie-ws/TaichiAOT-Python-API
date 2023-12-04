@@ -1,9 +1,9 @@
 from ctypes import CDLL, c_uint32, POINTER, c_uint64, c_char_p, c_void_p
 from os.path import dirname, join, abspath
 
-from PyTaichi.enumerations import TiError
-from PyTaichi.handles import TiRuntime, TiMemory
-from PyTaichi.structures import TiMemoryAllocateInfo, TiImageAllocateInfo, TiSamplerCreateInfo, TiMemorySlice, \
+from .enumerations import TiError
+from .handles import TiRuntime, TiMemory
+from .structures import TiMemoryAllocateInfo, TiImageAllocateInfo, TiSamplerCreateInfo, TiMemorySlice, \
     TiImageSlice, TiNamedArgument
 
 _current_folder = dirname(abspath(__file__))
