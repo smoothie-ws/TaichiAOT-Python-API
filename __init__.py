@@ -1,23 +1,20 @@
 from ctypes import byref, create_string_buffer, string_at, cast
-from typing import List, Tuple
+from typing import List
 
-from .aliases import *
-from .definitions import *
-from .enumerations import *
-from .functions import *
-from .handles import *
-from .structures import *
+from .TiAliases import *
+from .TiDefinitions import *
+from .TiEnumerations import *
+from .TiFunctions import *
+from .TiHandles import *
+from .TiStructures import *
 
 
+# Error Handling
 def get_version() -> c_uint32:
-    """Description placeholder"""
-
     return ti_get_version()
 
 
 def get_last_error() -> str:
-    """Gets the last error raised by Taichi C-API invocations"""
-
     message_size = c_uint64(256)
     message_buffer = create_string_buffer(message_size.value)
 
@@ -25,6 +22,10 @@ def get_last_error() -> str:
     error_message = string_at(message_buffer, message_size.value).decode('utf-8')
 
     return f"Taichi C-API returned: {error_message}. Error code: {error_code}"
+
+
+def set_last_error(error: TiError, message: str) -> None:
+    ti_set_last_error(error, message.encode('utf-8'))
 
 
 def create_runtime(arch: TiArch,
@@ -35,57 +36,42 @@ def create_runtime(arch: TiArch,
     return cast(address, TiRuntime)
 
 
-def get_available_archs() -> Tuple[List[c_uint32], List[TiArch]]:
-    """Description placeholder"""
+# Memory Operations
+def allocate_memory(runtime: TiRuntime, allocate_info: TiMemoryAllocateInfo) -> TiMemory:
+    address = ti_allocate_memory(runtime, byref(allocate_info))
+    return cast(address, TiMemory)
 
-    arch_count = c_uint32(0)
-    arch_list = (c_uint32 * 16)()
+
+def free_memory(runtime: TiRuntime, memory: TiMemory) -> None:
+    ti_free_memory(runtime, memory)
+
+
+def map_memory(runtime: TiRuntime, memory: TiMemory) -> c_void_p:
+    return ti_map_memory(runtime, memory)
+
+
+def unmap_memory(runtime: TiRuntime, memory: TiMemory) -> None:
+    ti_unmap_memory(runtime, memory)
+
+
+def get_available_archs() -> list[str]:
+    """Gets a list of available archs on the current platform."""
+
+    arch_count = c_uint32(TI_MAX_ARCH_COUNT)
+    arch_list = (c_uint32 * TI_MAX_ARCH_COUNT)()
 
     ti_get_available_archs(byref(arch_count), arch_list)
 
-    return list(arch_list[:arch_count.value]), [TiArch(arch) for arch in arch_list[:arch_count.value]]
+    arch_values = [TiArch(arch_list[i]) for i in range(arch_count.value)]
+    arch_names = [arch.name for arch in arch_values]
+
+    return arch_names
 
 
 def destroy_runtime(runtime: TiRuntime) -> None:
     """Description placeholder"""
 
     ti_destroy_runtime(runtime)
-
-
-def set_last_error(error: TiError,
-                   message: str) -> None:
-    """Description placeholder"""
-
-    ti_set_last_error(error, message.encode('utf-8'))
-
-
-def allocate_memory(runtime: TiRuntime,
-                    allocate_info: TiMemoryAllocateInfo) -> TiMemory:
-    """Allocate memory and return a TiMemory pointer."""
-
-    address = ti_allocate_memory(runtime, byref(allocate_info))
-    return cast(address, TiMemory)
-
-
-def free_memory(runtime: TiRuntime,
-                memory: TiMemory) -> None:
-    """Free the allocated memory."""
-
-    ti_free_memory(runtime, memory)
-
-
-def map_memory(runtime: TiRuntime,
-               memory: TiMemory) -> c_void_p:
-    """Map device memory to host-addressable space."""
-
-    return ti_map_memory(runtime, memory)
-
-
-def unmap_memory(runtime: TiRuntime,
-                 memory: TiMemory) -> None:
-    """Unmap device memory, making host-side changes visible to the device."""
-
-    ti_unmap_memory(runtime, memory)
 
 
 def allocate_image(runtime: TiRuntime,
@@ -153,8 +139,18 @@ def launch_kernel(runtime: TiRuntime,
                   kernel: TiKernel,
                   num_args: int,
                   args: List[TiArgument]) -> None:
-    """Description placeholder"""
+    """Launches a Taichi kernel with the provided arguments.
 
+    The arguments must have the same count and types in the same order as in the source code.
+
+    Parameters:
+    - runtime (Type: TiRuntime): The runtime on which the kernel will be launched.
+    - kernel (Type: TiKernel): The kernel to be launched.
+    - num_args (Type: int): Number of kernel arguments.
+    - args (Type: List[TiArgument]): List of kernel arguments.
+
+    Returns: None
+    """
     ti_launch_kernel(runtime, kernel, num_args, byref((TiArgument * num_args)(*args)))
 
 
