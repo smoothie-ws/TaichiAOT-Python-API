@@ -1,3 +1,5 @@
+from ctypes import c_void_p
+from os.path import dirname, abspath, join
 from typing import List
 
 from .TiAliases import *
@@ -75,13 +77,13 @@ def unmap_memory(runtime: TiRuntime, memory: TiMemory) -> None:
     _py_ti_unmap_memory(runtime, memory)
 
 
-def get_available_archs() -> list[str]:
+def get_available_archs() -> list[TiArch]:
     """Gets a list of available archs on the current platform."""
 
     arch_count, arch_list = _py_ti_get_available_archs()
-    arch_values = [TiArch(arch_list[i]) for i in range(arch_count.value)]
+    arch_values = [arch_list[i] for i in range(arch_count.value)]
 
-    return [arch.name for arch in arch_values]
+    return arch_values
 
 
 def allocate_image(runtime: TiRuntime,

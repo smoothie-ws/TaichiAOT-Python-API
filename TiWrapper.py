@@ -1,7 +1,7 @@
 """Module providing Python bindings for TiRuntime functions."""
 
-from ctypes import byref, create_string_buffer, string_at, cast, Array, c_void_p
-from typing import List, Any
+from ctypes import byref, create_string_buffer, string_at, cast, Array, c_void_p, c_uint32
+from typing import List, Any, Tuple
 
 from .TiDefinitions import *
 from .TiFunctions import *
@@ -91,7 +91,7 @@ def _py_ti_unmap_memory(runtime: TiRuntime, memory: TiMemory) -> None:
     ti_unmap_memory(runtime, memory)
 
 
-def _py_ti_get_available_archs() -> tuple[Any, Array[Any]]:
+def _py_ti_get_available_archs() -> tuple[c_uint32, Array[int]]:
     """Get available architectures on the TiRuntime."""
 
     arch_count = c_uint32(TI_MAX_ARCH_COUNT)
