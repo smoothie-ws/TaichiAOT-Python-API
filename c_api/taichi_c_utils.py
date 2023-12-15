@@ -1,7 +1,85 @@
-from ctypes import c_int
+from ctypes import POINTER, Structure, Union, c_int
+from ctypes import c_uint32, c_uint64, c_float, c_uint8, c_uint16, c_int32, c_char_p
+from enum import IntEnum
+
+"""Taichi C-API definitions"""
 
 
-class TiError(c_int):
+TI_FALSE = 0
+TI_TRUE = 1
+TI_NULL_HANDLE = 0
+TI_MAX_ARCH_COUNT = 16
+
+
+"""Taichi C-API aliases"""
+
+
+class TiBool(c_int):
+    """A boolean value. Can be either TI_TRUE or TI_FALSE.
+     Assignment with other values could lead to undefined behavior."""
+    pass
+
+
+class TiFlags(c_int):
+    """A bit field that can be used to represent 32 orthogonal flags.
+     Bits unspecified in the corresponding flag enum are ignored."""
+    pass
+
+
+"""Taichi C-API handles"""
+
+
+class _TiRuntime_t(Structure):
+    """Taichi runtime represents an instance of a logical backend and its internal dynamic state.
+    The user is responsible to synchronize any use of TiRuntime.
+    The user must not manipulate multiple TiRuntimes in the same thread."""
+    pass
+
+
+class _TiAotModule_t(Structure):
+    """An ahead-of-time (AOT) compiled Taichi module, which contains a collection of kernels and compute graphs."""
+    pass
+
+
+class _TiMemory_t(Structure):
+    """A contiguous allocation of device memory."""
+    pass
+
+
+class _TiImage_t(Structure):
+    """A contiguous allocation of device image."""
+    pass
+
+
+class _TiKernel_t(Structure):
+    """A Taichi kernel that can be launched on the offload target for execution."""
+    pass
+
+
+class _TiComputeGraph_t(Structure):
+    """A collection of Taichi kernels (a compute graph) to launch on the offload target in a predefined order."""
+    pass
+
+
+class _TiSampler_t(Structure):
+    """An image sampler. Represents a default image sampler provided by the runtime implementation.
+     The filter modes and address modes of default samplers depend on backend implementation."""
+    pass
+
+
+TiRuntime = POINTER(_TiRuntime_t)
+TiAotModule = POINTER(_TiAotModule_t)
+TiMemory = POINTER(_TiMemory_t)
+TiImage = POINTER(_TiImage_t)
+TiKernel = POINTER(_TiKernel_t)
+TiComputeGraph = POINTER(_TiComputeGraph_t)
+TiSampler = POINTER(_TiSampler_t)
+
+
+"""Taichi C-API enumerations"""
+
+
+class TiError(IntEnum):
     """Errors reported by the Taichi C-API."""
 
     TI_ERROR_SUCCESS = 0  # Successful Taichi C-API invocation.
@@ -18,8 +96,29 @@ class TiError(c_int):
     TI_ERROR_OUT_OF_MEMORY = -11  # Out of memory.
     TI_ERROR_MAX_ENUM = 0xffffffff  # Maximum value of the enumeration.
 
+    @classmethod
+    def get_error_details(cls, error_code: int) -> str:
+        """Get the error details for a given error code."""
+        error_messages = {
+            cls.TI_ERROR_SUCCESS.value: "Successful Taichi C-API invocation.",
+            cls.TI_ERROR_NOT_SUPPORTED.value: "API or parameter combination not supported.",
+            cls.TI_ERROR_CORRUPTED_DATA.value: "Provided data is corrupted.",
+            cls.TI_ERROR_NAME_NOT_FOUND.value: "Provided name does not exist.",
+            cls.TI_ERROR_INVALID_ARGUMENT.value: "Function argument constraint violation or AOT module kernel argument mismatch.",
+            cls.TI_ERROR_ARGUMENT_NULL.value: "One or more by-reference (pointer) function arguments point to null.",
+            cls.TI_ERROR_ARGUMENT_OUT_OF_RANGE.value: "One or more function arguments are out of its acceptable range.",
+            cls.TI_ERROR_ARGUMENT_NOT_FOUND.value: "One or more kernel arguments are missing.",
+            cls.TI_ERROR_INVALID_INTEROP.value: "The intended interoperation is not possible on the current arch.",
+            cls.TI_ERROR_INVALID_STATE.value: "The Taichi C-API enters an unrecoverable invalid state.",
+            cls.TI_ERROR_INCOMPATIBLE_MODULE.value: "The AOT module is not compatible with the current runtime.",
+            cls.TI_ERROR_OUT_OF_MEMORY.value: "Out of memory.",
+            cls.TI_ERROR_MAX_ENUM.value: "Maximum value of the enumeration."
+        }
 
-class TiArch(c_int):
+        return error_messages.get(error_code, f"Unknown error code: {error_code}")
+
+
+class TiArch(IntEnum):
     """Types of backend archs."""
 
     TI_ARCH_RESERVED = 0  # Reserved backend architecture.
@@ -33,7 +132,7 @@ class TiArch(c_int):
     TI_ARCH_MAX_ENUM = 0xffffffff  # Maximum value of the enumeration.
 
 
-class TiCapability(c_int):
+class TiCapability(IntEnum):
     """Device capabilities."""
 
     TI_CAPABILITY_RESERVED = 0  # Reserved device capability.
@@ -64,7 +163,7 @@ class TiCapability(c_int):
     TI_CAPABILITY_MAX_ENUM = 0xffffffff  # Maximum value of the enumeration.
 
 
-class TiDataType(c_int):
+class TiDataType(IntEnum):
     """Elementary (primitive) data types in the Taichi C-API.
 
     There might be vendor-specific constraints on the available data types,
@@ -88,7 +187,7 @@ class TiDataType(c_int):
     TI_DATA_TYPE_MAX_ENUM = 0xffffffff  # Maximum value of the enumeration.
 
 
-class TiArgumentType(c_int):
+class TiArgumentType(IntEnum):
     """Types of kernel and compute graph arguments in the Taichi C-API."""
 
     TI_ARGUMENT_TYPE_I32 = 0  # 32-bit one's complement signed integer.
@@ -100,7 +199,7 @@ class TiArgumentType(c_int):
     TI_ARGUMENT_TYPE_MAX_ENUM = 0xffffffff  # Maximum value of the enumeration.
 
 
-class TiMemoryUsageFlagBits(c_int):
+class TiMemoryUsageFlagBits(IntEnum):
     """Usages of a memory allocation.
     Taichi requires kernel argument memories to be allocated with TI_MEMORY_USAGE_STORAGE_BIT."""
 
@@ -110,14 +209,14 @@ class TiMemoryUsageFlagBits(c_int):
     TI_MEMORY_USAGE_INDEX_BIT = 1 << 3  # The memory can be used as an index buffer in graphics pipelines.
 
 
-class TiMemoryUsageFlags(c_int):
+class TiMemoryUsageFlags(IntEnum):
     TI_MEMORY_USAGE_STORAGE_BIT = TiMemoryUsageFlagBits.TI_MEMORY_USAGE_STORAGE_BIT
     TI_MEMORY_USAGE_UNIFORM_BIT = TiMemoryUsageFlagBits.TI_MEMORY_USAGE_UNIFORM_BIT
     TI_MEMORY_USAGE_VERTEX_BIT = TiMemoryUsageFlagBits.TI_MEMORY_USAGE_VERTEX_BIT
     TI_MEMORY_USAGE_INDEX_BIT = TiMemoryUsageFlagBits.TI_MEMORY_USAGE_INDEX_BIT
 
 
-class TiImageUsageFlagBits(c_int):
+class TiImageUsageFlagBits(IntEnum):
     """Usages of an image allocation in the Taichi C-API."""
 
     TI_IMAGE_USAGE_STORAGE_BIT = 1 << 0  # The image can be read/write accessed by any kernel.
@@ -125,13 +224,13 @@ class TiImageUsageFlagBits(c_int):
     TI_IMAGE_USAGE_ATTACHMENT_BIT = 1 << 2  # The image can be used as a color or depth-stencil attachment depending on its format.
 
 
-class TiImageUsageFlags(c_int):
+class TiImageUsageFlags(IntEnum):
     TI_IMAGE_USAGE_STORAGE_BIT = TiImageUsageFlagBits.TI_IMAGE_USAGE_STORAGE_BIT
     TI_IMAGE_USAGE_SAMPLED_BIT = TiImageUsageFlagBits.TI_IMAGE_USAGE_SAMPLED_BIT
     TI_IMAGE_USAGE_ATTACHMENT_BIT = TiImageUsageFlagBits.TI_IMAGE_USAGE_ATTACHMENT_BIT
 
 
-class TiImageDimension(c_int):
+class TiImageDimension(IntEnum):
     """Dimensions of an image allocation in the Taichi C-API."""
 
     TI_IMAGE_DIMENSION_1D = 0  # The image is 1-dimensional.
@@ -143,7 +242,7 @@ class TiImageDimension(c_int):
     TI_IMAGE_DIMENSION_MAX_ENUM = 0xffffffff  # Maximum value of the enumeration.
 
 
-class TiImageLayout(c_int):
+class TiImageLayout(IntEnum):
     """Image layouts in the Taichi C-API (1.4.0)."""
 
     TI_IMAGE_LAYOUT_UNDEFINED = 0  # Undefined layout. An image in this layout does not contain any semantical information.
@@ -160,7 +259,7 @@ class TiImageLayout(c_int):
     TI_IMAGE_LAYOUT_MAX_ENUM = 0xffffffff  # Maximum value of the enumeration.
 
 
-class TiFormat(c_int):
+class TiFormat(IntEnum):
     """Texture formats in the Taichi C-API."""
 
     TI_FORMAT_UNKNOWN = 0  # Unknown texture format.
@@ -210,18 +309,228 @@ class TiFormat(c_int):
     TI_FORMAT_MAX_ENUM = 0xffffffff  # Maximum value of the enumeration.
 
 
-class TiFilter(c_int):
+class TiFilter(IntEnum):
     """Texture filtering modes."""
 
     TI_FILTER_NEAREST = 0  # Nearest-neighbor filtering.
     TI_FILTER_LINEAR = 1  # Linear filtering.
-    TI_FILTER_MAX_ENUM = 0xffffffff  # Maximum value of the enumeration.
+    TI_FILTER_MAX_ENUM = 0xffffffff  # Maximum value.
 
 
-class TiAddressMode(c_int):
+class TiAddressMode(IntEnum):
     """Texture addressing modes."""
 
     TI_ADDRESS_MODE_REPEAT = 0  # Repeat addressing mode.
     TI_ADDRESS_MODE_MIRRORED_REPEAT = 1  # Mirrored repeat addressing mode.
     TI_ADDRESS_MODE_CLAMP_TO_EDGE = 2  # Clamp to edge addressing mode.
-    TI_ADDRESS_MODE_MAX_ENUM = 0xffffffff  # Maximum value of the enumeration.
+    TI_ADDRESS_MODE_MAX_ENUM = 0xffffffff  # Maximum value.
+
+
+"""Taichi C-API structures"""
+
+
+class TiCapabilityLevelInfo(Structure):
+    """An integral device capability level.
+    It currently is not guaranteed that a higher level value is compatible with a lower level value."""
+
+    _fields_ = [
+        ("capability", c_int),
+        ("level", c_uint32)
+    ]
+
+
+class TiMemoryAllocateInfo(Structure):
+    """Parameters of a newly allocated memory."""
+    _fields_ = [
+        ("size", c_uint64),  # Size of the allocation in bytes.
+        ("host_write", TiBool),  # True if the host needs to write to the allocated memory.
+        ("host_read", TiBool),  # True if the host needs to read from the allocated memory.
+        ("export_sharing", TiBool),  # True if the memory allocation needs to be exported to other backends.
+        ("usage", c_int)  # All possible usage of this memory allocation.
+    ]
+
+
+class TiMemorySlice(Structure):
+    """A subsection of a memory allocation."""
+
+    _fields_ = [
+        ("memory", TiMemory),  # The subsectioned memory allocation.
+        ("offset", c_uint64),  # Offset from the beginning of the allocation.
+        ("size", c_uint64)  # Size of the subsection.
+    ]
+
+
+class TiNdShape(Structure):
+    """Multi-dimensional size of an ND-array."""
+
+    _fields_ = [
+        ("dim_count", c_uint32),  # Number of dimensions.
+        ("dims", c_uint32 * 16)  # Dimension sizes.
+    ]
+
+
+class TiNdArray(Structure):
+    """Represents an N-dimensional array."""
+
+    _fields_ = [
+        ("memory", TiMemory),  # Memory bound to the ND-array.
+        ("shape", TiNdShape),  # Shape of the ND-array.
+        ("elem_shape", TiNdShape),  # Shape of the ND-array elements.
+        ("elem_type", c_int)  # Primitive data type of the ND-array elements.
+    ]
+
+
+class TiImageOffset(Structure):
+    """Offsets of an image in X, Y, Z, and array layers."""
+
+    _fields_ = [
+        ("x", c_uint32),  # Image offset in the X direction.
+        ("y", c_uint32),  # Image offset in the Y direction. Must be 0 for 1D or 1D array.
+        ("z", c_uint32),  # Image offset in the Z direction. Must be 0 for 1D, 2D, or cube array.
+        ("array_layer_offset", c_uint32)  # Image offset in array layers. Must be 0 for 1D, 2D, or 3D array.
+    ]
+
+
+class TiImageExtent(Structure):
+    """Extents of an image in X, Y, Z, and array layers."""
+
+    _fields_ = [
+        ("width", c_uint32),  # Image extent in the X direction.
+        ("height", c_uint32),  # Image extent in the Y direction. Must be 1 for 1D or 1D array.
+        ("depth", c_uint32),  # Image extent in the Z direction. Must be 1 for 1D, 2D or cube array.
+        ("array_layer_count", c_uint32)
+        # Image extent in array layers. Must be 1 for 1D, 2D, or 3D array. Must be 6 for cube array.
+    ]
+
+
+class TiImageAllocateInfo(Structure):
+    """Parameters of a newly allocated image."""
+
+    _fields_ = [
+        ("dimension", c_int),  # Image dimension.
+        ("extent", TiImageExtent),  # Image extent.
+        ("mip_level_count", c_uint32),  # Number of mip-levels.
+        ("format", c_int),  # Image texel format.
+        ("export_sharing", TiBool),  # True if the memory allocation needs to be exported to other backends.
+        ("usage", c_int)  # All possible usages of this image allocation.
+    ]
+
+
+class TiImageSlice(Structure):
+    """Represents a slice of an image."""
+
+    _fields_ = [
+        ("image", TiImage),  # The subsectioned image allocation.
+        ("offset", TiImageOffset),  # Offset from the beginning of the allocation in each dimension.
+        ("extent", TiImageExtent),  # Size of the subsection in each dimension.
+        ("mip_level", c_uint32)  # The subsectioned mip-level.
+    ]
+
+
+class TiSamplerCreateInfo(Structure):
+    """Parameters for creating a sampler."""
+
+    _fields_ = [
+        ("mag_filter", c_int),  # Magnification filter.
+        ("min_filter", c_int),  # Minification filter.
+        ("address_mode", c_int),  # Address mode.
+        ("max_anisotropy", c_float)  # Maximum anisotropy level.
+    ]
+
+
+class TiTexture(Structure):
+    """Image data bound to a sampler."""
+
+    _fields_ = [
+        ("image", TiImage),  # Image bound to the texture.
+        ("sampler", TiSampler),  # The bound sampler that controls the sampling behavior of `structure.texture.image`.
+        ("dimension", c_int),  # Image Dimension.
+        ("extent", TiImageExtent),  # Image extent.
+        ("format", c_int)  # Image texel format.
+    ]
+
+
+class TiScalarValue(Union):
+    """Scalar value represented by a power-of-two number of bits."""
+    """NOTE:
+        The unsigned integer types merely hold the number of bits in memory
+        and doesn't reflect any type of the underlying data. For example, a 32-bit
+        floating-point scalar value is assigned by `*(float*)&scalar_value.x32 =
+        0.0f`; a 16-bit signed integer is assigned by `*(int16_t)&scalar_vaue.x16 =
+        1`. The actual type of the scalar is hinted via `type`."""
+
+    _fields_ = [
+        ("x8", c_uint8),  # Scalar value that fits into 8 bits.
+        ("x16", c_uint16),  # Scalar value that fits into 16 bits.
+        ("x32", c_uint32),  # Scalar value that fits into 32 bits.
+        ("x64", c_uint64)  # Scalar value that fits into 64 bits.
+    ]
+
+
+class TiScalar(Structure):
+    """A typed scalar value."""
+
+    _fields_ = [
+        ("type", c_int),  # Data type of the scalar.
+        ("value", TiScalarValue)  # Value of the scalar.
+    ]
+
+
+class TiTensorValue(Structure):
+    """Tensor value represented by a power-of-two number of bits."""
+
+    _fields_ = [
+        ("x8", c_uint8 * 128),  # Tensor value that fits into 8 bits.
+        ("x16", c_uint16 * 64),  # Tensor value that fits into 16 bits.
+        ("x32", c_uint32 * 32),  # Tensor value that fits into 32 bits.
+        ("x64", c_uint64 * 16)  # Tensor value that fits into 64 bits.
+    ]
+
+
+class TiTensorValueWithLength(Structure):
+    """A tensor value with a length."""
+
+    _fields_ = [
+        ("length", c_uint32),  # Length of the tensor.
+        ("data", TiTensorValue)  # Data of the tensor.
+    ]
+
+
+class TiTensor(Structure):
+    """A typed tensor value."""
+
+    _fields_ = [
+        ("type", c_int),  # Data type of the tensor.
+        ("contents", TiTensorValueWithLength)  # Contents of the tensor.
+    ]
+
+
+class TiArgumentValue(Union):
+    """A scalar or structured argument value."""
+
+    _fields_ = [
+        ("i32", c_int32),  # Value of a 32-bit one's complement signed integer.
+        ("f32", c_float),  # Value of a 32-bit IEEE 754 single-precision floating-poing number.
+        ("ndarray", TiNdArray),  # An ND-array to be bound.
+        ("texture", TiTexture),  # A texture to be bound.
+        ("scalar", TiScalar),  # A scalar to be bound.
+        ("tensor", TiTensor)  # A tensor to be bound.
+    ]
+
+
+class TiArgument(Structure):
+    """An argument value to feed kernels."""
+
+    _fields_ = [
+        ("type", c_int),  # Type of the argument.
+        ("value", TiArgumentValue)  # A Value of the argument.
+    ]
+
+
+class TiNamedArgument(Structure):
+    """A named argument value to feed compute graphs."""
+
+    _fields_ = [
+        ("name", c_char_p),  # Name of the argument.
+        ("argument", TiArgument)  # Argument body.
+    ]
