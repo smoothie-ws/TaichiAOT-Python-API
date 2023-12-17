@@ -1,7 +1,7 @@
 from ctypes import CDLL, c_void_p
-
-from .taichi_c_utils import *
 from os.path import dirname, join, abspath
+
+from ._taichi_c_utils import *
 
 __all__ = ['c_ti_get_version',
            'c_ti_get_last_error',
@@ -13,6 +13,8 @@ __all__ = ['c_ti_get_version',
            'c_ti_unmap_memory',
            'c_ti_get_available_archs',
            'c_ti_destroy_runtime',
+           'c_ti_set_runtime_capabilities_ext',
+           'c_ti_get_runtime_capabilities',
            'c_ti_allocate_image',
            'c_ti_free_image',
            'c_ti_create_sampler',
@@ -59,6 +61,16 @@ c_ti_destroy_runtime = _taichi_lib.ti_destroy_runtime
 c_ti_destroy_runtime.argtypes = [TiRuntime]
 c_ti_destroy_runtime.restype = None
 
+c_ti_set_runtime_capabilities_ext = _taichi_lib.ti_set_runtime_capabilities_ext
+c_ti_set_runtime_capabilities_ext.argtypes = [TiRuntime, c_uint32,
+                                              POINTER(TiCapabilityLevelInfo)]
+c_ti_set_runtime_capabilities_ext.restype = None
+
+c_ti_get_runtime_capabilities = _taichi_lib.ti_get_runtime_capabilities
+c_ti_get_runtime_capabilities.argtypes = [TiRuntime, c_uint32,
+                                          POINTER(TiCapabilityLevelInfo)]
+c_ti_get_runtime_capabilities.restype = None
+
 c_ti_allocate_memory = _taichi_lib.ti_allocate_memory
 c_ti_allocate_memory.argtypes = [TiRuntime, POINTER(TiMemoryAllocateInfo)]
 c_ti_allocate_memory.restype = TiMemory
@@ -92,11 +104,14 @@ c_ti_destroy_sampler.argtypes = [TiRuntime, TiSampler]
 c_ti_destroy_sampler.restype = None
 
 c_ti_copy_memory_device_to_device = _taichi_lib.ti_copy_memory_device_to_device
-c_ti_copy_memory_device_to_device.argtypes = [TiRuntime, POINTER(TiMemorySlice), POINTER(TiMemorySlice)]
+c_ti_copy_memory_device_to_device.argtypes = [TiRuntime,
+                                              POINTER(TiMemorySlice),
+                                              POINTER(TiMemorySlice)]
 c_ti_copy_memory_device_to_device.restype = None
 
 c_ti_copy_image_device_to_device = _taichi_lib.ti_copy_image_device_to_device
-c_ti_copy_image_device_to_device.argtypes = [TiRuntime, POINTER(TiImageSlice), POINTER(TiImageSlice)]
+c_ti_copy_image_device_to_device.argtypes = [TiRuntime, POINTER(TiImageSlice),
+                                             POINTER(TiImageSlice)]
 c_ti_copy_image_device_to_device.restype = None
 
 c_ti_track_image_ext = _taichi_lib.ti_track_image_ext
@@ -108,11 +123,13 @@ c_ti_transition_image.argtypes = [TiRuntime, TiImage, c_int]
 c_ti_transition_image.restype = None
 
 c_ti_launch_kernel = _taichi_lib.ti_launch_kernel
-c_ti_launch_kernel.argtypes = [TiRuntime, TiKernel, c_uint32, POINTER(TiArgument)]
+c_ti_launch_kernel.argtypes = [TiRuntime, TiKernel, c_uint32,
+                               POINTER(TiArgument)]
 c_ti_launch_kernel.restype = None
 
 c_ti_launch_compute_graph = _taichi_lib.ti_launch_compute_graph
-c_ti_launch_compute_graph.argtypes = [TiRuntime, TiComputeGraph, c_uint32, c_void_p]
+c_ti_launch_compute_graph.argtypes = [TiRuntime, TiComputeGraph, c_uint32,
+                                      c_void_p]
 c_ti_launch_compute_graph.restype = None
 
 c_ti_flush = _taichi_lib.ti_flush

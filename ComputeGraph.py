@@ -1,19 +1,18 @@
 from typing import List
 
-from .c_api import *
-from . import AotModule
-from . import Runtime
+from .Runtime import runtime
+from .utils import *
 
 
 class compute_graph:
-    def __init__(self, compute_graph_instance: TiComputeGraph):
-        self._compute_graph: TiComputeGraph = compute_graph_instance
+    def __init__(self, compute_graph_instance: c_api.TiComputeGraph):
+        self._compute_graph: c_api.TiComputeGraph = compute_graph_instance
 
     @staticmethod
-    def from_aot_module(aot_module: AotModule, compute_graph_name: str):
-        return aot_module.get_compute_graph(compute_graph_name)
+    def from_aot_module(ti_aot_module, compute_graph_name: str):
+        return ti_aot_module.get_compute_graph(compute_graph_name)
 
-    def launch(self, runtime: Runtime, named_args: List[TiNamedArgument]) -> None:
+    def launch(self, ti_runtime: runtime, named_args: List[c_api.TiNamedArgument]) -> None:
         """Description placeholder"""
 
-        ti_launch_compute_graph(runtime, self._compute_graph, len(named_args), named_args)
+        c_api.ti_launch_compute_graph(ti_runtime, self._compute_graph, len(named_args), named_args)

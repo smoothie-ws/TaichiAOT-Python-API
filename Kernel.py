@@ -1,38 +1,43 @@
+import time
 from ctypes import POINTER, cast
-from typing import Any, List
+from typing import Any
 
 import numpy as np
 
-from .c_api import *
-from .utils import ctypes_datatype
 from .KernelArgument import kernel_argument
 from .Runtime import runtime
+from .c_api import *
+from .utils import ctypes_datatype, get_last_error
 
 
 class kernel:
     def __init__(self, kernel_instance: TiKernel):
         self._kernel: TiKernel = kernel_instance
-        self.arguments = None
+        self.arg_params = []
+        self.kernel_params = []
 
-    def launch(self, ti_runtime: runtime, *args) -> list[Any]:
-        params = []
-        kernel_args = []
+    def set_arguments(self, ti_runtime: runtime, *args):
         for arg in args:
             argument = kernel_argument(ti_runtime, arg)
-            params.append(argument)
-            kernel_args.append(argument.get_ti_argument)
+            self.arg_params.append(argument)
+            self.kernel_params.append(argument.get_ti_argument)
 
-        ti_launch_kernel(ti_runtime.runtime_instance, self._kernel, len(kernel_args), kernel_args)
+        get_last_error()
 
+    def launch(self, ti_runtime: runtime, *args) -> list[Any]:
+        if args is not None:
+            self.set_arguments(ti_runtime, *args)
+
+        ti_launch_kernel(ti_runtime.runtime_instance, self._kernel, len(self.kernel_params), self.kernel_params)
         ti_runtime.wait()
 
-        return_args = []
-        for parameter in params:
-            if parameter.type == TiArgumentType.TI_ARGUMENT_TYPE_NDARRAY:
-                mapped_data = parameter.allocated_memory.map()
-                data_array = cast(mapped_data, POINTER(ctypes_datatype(parameter.og) * parameter.og.size)).contents
-                return_args.append(np.array(data_array).reshape(parameter.og.shape))
-                parameter.allocated_memory.unmap()
-                parameter.allocated_memory.free()
+        res_params = []
+        for param in self.arg_params:
+            if param.type == TiArgumentType.TI_ARGUMENT_TYPE_NDARRAY:
+                data_array = cast(param.allocated_memory.map(), POINTER(ctypes_datatype(param.og) * param.og.size)).contents
+                res_params.append(np.array(data_array).reshape(param.og.shape))
+                param.allocated_memory.unmap()
+                param.allocated_memory.free()
 
-        return return_args
+        get_last_error()
+        return res_params

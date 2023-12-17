@@ -1,37 +1,42 @@
-from ctypes import sizeof, memmove, POINTER, cast
+from ctypes import sizeof, memmove, POINTER, cast, c_uint32
 from typing import Any
 
+import numpy as np
+
 from .Memory import memory
-from .utils import *
+from .Runtime import runtime
+from .c_api import *
+from .utils import ctypes_datatype, taichi_datatype
 
 
 class kernel_argument:
-    def __init__(self, runtime: TiRuntime, arg: Any):
+    def __init__(self, ti_runtime: runtime, arg: Any):
         self.og = arg
         self.allocated_memory = None
-        self.type: TiArgumentType = self._to_ti_type(arg)
-        self.value: TiArgumentValue = self._to_ti_value(arg, runtime)
+        self.type: TiArgumentType = self._to_ti_type(self.og)
+        self.value: TiArgumentValue = self._to_ti_value(self.og, ti_runtime)
 
     def _to_ti_type(self, arg) -> TiArgumentType:
         type_map = {
             int: TiArgumentType.TI_ARGUMENT_TYPE_I32,
             float: TiArgumentType.TI_ARGUMENT_TYPE_F32,
-            np.ndarray: TiArgumentType.TI_ARGUMENT_TYPE_NDARRAY
+            np.ndarray: TiArgumentType.TI_ARGUMENT_TYPE_NDARRAY,
+            bytes: TiArgumentType.TI_ARGUMENT_TYPE_TEXTURE,
+            str: TiArgumentType.TI_ARGUMENT_TYPE_SCALAR,
+            list: TiArgumentType.TI_ARGUMENT_TYPE_TENSOR,
         }
-
         return type_map.get(type(arg))
 
     def _to_ti_value(self, arg, ti_runtime) -> TiArgumentValue:
         type_value_map = {
             TiArgumentType.TI_ARGUMENT_TYPE_I32: lambda x: TiArgumentValue(i32=x),
             TiArgumentType.TI_ARGUMENT_TYPE_F32: lambda x: TiArgumentValue(f32=x),
-            TiArgumentType.TI_ARGUMENT_TYPE_NDARRAY: lambda x: TiArgumentValue(
-                ndarray=self._to_ti_ndarray(x, ti_runtime))
+            TiArgumentType.TI_ARGUMENT_TYPE_NDARRAY: lambda x: TiArgumentValue(ndarray=self._to_ti_ndarray(x, ti_runtime))
         }
 
         return type_value_map.get(self.type, lambda x: None)(arg)
 
-    def _to_ti_ndarray(self, array, ti_runtime):
+    def _to_ti_ndarray(self, array: np.ndarray, ti_runtime):
         size = array.size
         memory_allocate_info = TiMemoryAllocateInfo(
             size=size * sizeof(ctypes_datatype(array)),
