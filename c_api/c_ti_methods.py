@@ -14,45 +14,6 @@ TI_TRUE = 1
 TI_NULL_HANDLE = 0
 TI_MAX_ARCH_COUNT = 16
 
-__all__ = [
-    # aliases
-    'TiBool', 'TiFlags',
-
-    # definitions
-    'TI_FALSE', 'TI_TRUE', 'TI_MAX_ARCH_COUNT', 'TI_NULL_HANDLE',
-
-    # enumerations
-    'TiError', 'TiArch', 'TiCapability', 'TiDataType', 'TiArgumentType',
-    'TiMemoryUsageFlags', 'TiImageUsageFlags', 'TiImageDimension',
-    'TiImageLayout', 'TiFormat', 'TiFilter', 'TiAddressMode',
-
-    # handles
-    'TiRuntime', 'TiAotModule', 'TiMemory', 'TiImage',
-    'TiKernel', 'TiComputeGraph', 'TiSampler',
-
-    # structures
-    'TiCapabilityLevelInfo', 'TiMemoryAllocateInfo', 'TiMemorySlice',
-    'TiNdShape', 'TiNdArray', 'TiImageOffset', 'TiImageExtent',
-    'TiImageAllocateInfo', 'TiImageSlice', 'TiSamplerCreateInfo',
-    'TiTexture', 'TiScalarValue', 'TiScalar', 'TiTensorValue',
-    'TiTensorValueWithLength', 'TiTensor', 'TiArgumentValue',
-    'TiArgument', 'TiNamedArgument',
-
-    # methods
-    'ti_get_version', 'ti_get_available_archs',
-    'ti_get_last_error', 'ti_set_last_error',
-    'ti_create_runtime', 'ti_destroy_runtime',
-    'ti_load_aot_module', 'ti_create_aot_module', 'ti_destroy_aot_module',
-    'ti_get_aot_module_kernel', 'ti_get_aot_module_compute_graph',
-    'ti_launch_kernel', 'ti_launch_compute_graph',
-    'ti_allocate_memory', 'ti_free_memory', 'ti_map_memory', 'ti_unmap_memory',
-    'ti_allocate_image', 'ti_free_image',
-    'ti_create_sampler', 'ti_destroy_sampler',
-    'ti_copy_memory_device_to_device', 'ti_copy_image_device_to_device',
-    'ti_track_image_ext', 'ti_transition_image',
-    'ti_flush', 'ti_wait'
-]
-
 
 def ti_get_version() -> int:
     """Get the current taichi version."""
@@ -269,7 +230,8 @@ def ti_launch_compute_graph(runtime: TiRuntime, graph: TiComputeGraph,
     as in the source code."""
 
     TAICHI_C_API.ti_launch_compute_graph(runtime, graph, num_args,
-                                         (TiNamedArgument * num_args)(*named_args))
+                                         (TiNamedArgument * num_args)(
+                                             *named_args))
 
 
 def ti_flush(runtime: TiRuntime) -> None:
@@ -317,7 +279,8 @@ def ti_set_runtime_capabilities_ext(runtime: TiRuntime,
     """
 
     capability_count = len(capabilities)
-    capabilities_array = (TiCapabilityLevelInfo * capability_count)(*capabilities)
+    capabilities_array = (TiCapabilityLevelInfo * capability_count)(
+        *capabilities)
 
     TAICHI_C_API.ti_set_runtime_capabilities_ext(runtime,
                                                  capability_count,
@@ -357,7 +320,8 @@ def ti_load_aot_module(runtime: TiRuntime, filepath: str) -> TiAotModule:
         a TiAotModule instance.
     """
 
-    address = TAICHI_C_API.ti_load_aot_module(runtime,filepath.encode('utf-8'))
+    address = TAICHI_C_API.ti_load_aot_module(runtime,
+                                              filepath.encode('utf-8'))
     return cast(address, TiAotModule)
 
 
@@ -392,7 +356,8 @@ def ti_get_aot_module_kernel(module: TiAotModule,
         a TiKernel instance.
     """
 
-    address = TAICHI_C_API.ti_get_aot_module_kernel(module, kernel_name.encode('utf-8'))
+    address = TAICHI_C_API.ti_get_aot_module_kernel(module, kernel_name.encode(
+        'utf-8'))
     return cast(address, TiKernel)
 
 
@@ -407,5 +372,7 @@ def ti_get_aot_module_compute_graph(module: TiAotModule,
         a TiComputeGraph instance.
     """
 
-    address = TAICHI_C_API.ti_get_aot_module_compute_graph(module, graph_name.encode('utf-8'))
+    address = TAICHI_C_API.ti_get_aot_module_compute_graph(module,
+                                                           graph_name.encode(
+                                                               'utf-8'))
     return cast(address, TiComputeGraph)
