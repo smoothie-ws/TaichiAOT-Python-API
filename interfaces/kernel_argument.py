@@ -3,29 +3,30 @@ from typing import Any
 
 import numpy as np
 
-from .Memory import memory
-from .Runtime import runtime
-from .c_api import *
-from .utils import ctypes_datatype, taichi_datatype
+from .memory import Memory
+from .runtime import Runtime
+from taichiAOT.c_api import *
+from taichiAOT._utils import ctypes_datatype, taichi_datatype
 
 
-class kernel_argument:
-    def __init__(self, ti_runtime: runtime, arg: Any):
+def _to_ti_type(arg) -> TiArgumentType:
+    type_map = {
+        int: TiArgumentType.TI_ARGUMENT_TYPE_I32,
+        float: TiArgumentType.TI_ARGUMENT_TYPE_F32,
+        np.ndarray: TiArgumentType.TI_ARGUMENT_TYPE_NDARRAY,
+        bytes: TiArgumentType.TI_ARGUMENT_TYPE_TEXTURE,
+        str: TiArgumentType.TI_ARGUMENT_TYPE_SCALAR,
+        list: TiArgumentType.TI_ARGUMENT_TYPE_TENSOR,
+    }
+    return type_map.get(type(arg))
+
+
+class KernelArgument:
+    def __init__(self, ti_runtime: Runtime, arg: Any):
         self.og = arg
         self.allocated_memory = None
-        self.type: TiArgumentType = self._to_ti_type(self.og)
+        self.type: TiArgumentType = _to_ti_type(self.og)
         self.value: TiArgumentValue = self._to_ti_value(self.og, ti_runtime)
-
-    def _to_ti_type(self, arg) -> TiArgumentType:
-        type_map = {
-            int: TiArgumentType.TI_ARGUMENT_TYPE_I32,
-            float: TiArgumentType.TI_ARGUMENT_TYPE_F32,
-            np.ndarray: TiArgumentType.TI_ARGUMENT_TYPE_NDARRAY,
-            bytes: TiArgumentType.TI_ARGUMENT_TYPE_TEXTURE,
-            str: TiArgumentType.TI_ARGUMENT_TYPE_SCALAR,
-            list: TiArgumentType.TI_ARGUMENT_TYPE_TENSOR,
-        }
-        return type_map.get(type(arg))
 
     def _to_ti_value(self, arg, ti_runtime) -> TiArgumentValue:
         type_value_map = {
@@ -45,7 +46,7 @@ class kernel_argument:
             export_sharing=TI_FALSE,
             usage=TiMemoryUsageFlags.TI_MEMORY_USAGE_STORAGE_BIT)
 
-        self.allocated_memory = memory.allocate(ti_runtime, memory_allocate_info)
+        self.allocated_memory = Memory.allocate(ti_runtime, memory_allocate_info)
         mapped_data = self.allocated_memory.map()
         data_array = cast(mapped_data, POINTER(size * ctypes_datatype(array)))
 

@@ -1,11 +1,11 @@
 from ctypes import c_void_p
 
-from .Runtime import runtime
-from .c_api import *
+from .runtime import Runtime
+from taichiAOT.c_api import *
 
 
-class memory:
-    def __init__(self, ti_runtime: runtime, memory_instance: TiMemory) -> None:
+class Memory:
+    def __init__(self, ti_runtime: Runtime, memory_instance: TiMemory) -> None:
         self._memory = memory_instance
         self._runtime = ti_runtime
 
@@ -14,9 +14,9 @@ class memory:
         return self._memory
 
     @staticmethod
-    def allocate(ti_runtime: runtime, allocate_info: TiMemoryAllocateInfo) -> 'memory':
+    def allocate(ti_runtime: Runtime, allocate_info: TiMemoryAllocateInfo) -> 'Memory':
         memory_instance = ti_allocate_memory(ti_runtime.runtime_instance, allocate_info)
-        return memory(ti_runtime, memory_instance)
+        return Memory(ti_runtime, memory_instance)
 
     def free(self) -> None:
         ti_free_memory(self._runtime.runtime_instance, self._memory)

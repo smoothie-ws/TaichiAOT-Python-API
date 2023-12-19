@@ -1,15 +1,63 @@
-from ctypes import byref, create_string_buffer, string_at, cast, Array, \
-    c_void_p
+from ctypes import (Array, byref, create_string_buffer,
+                    string_at, cast, c_void_p)
 from typing import List
 
-from ._taichi_c_bindings import *
-from ._taichi_c_utils import *
+from ._api_loader import C_API
+from .c_ti_enums import *
+from .c_ti_structs import *
+
+TAICHI_C_API = C_API()
+assert TAICHI_C_API.loaded
+
+TI_FALSE = 0
+TI_TRUE = 1
+TI_NULL_HANDLE = 0
+TI_MAX_ARCH_COUNT = 16
+
+__all__ = [
+    # aliases
+    'TiBool', 'TiFlags',
+
+    # definitions
+    'TI_FALSE', 'TI_TRUE', 'TI_MAX_ARCH_COUNT', 'TI_NULL_HANDLE',
+
+    # enumerations
+    'TiError', 'TiArch', 'TiCapability', 'TiDataType', 'TiArgumentType',
+    'TiMemoryUsageFlags', 'TiImageUsageFlags', 'TiImageDimension',
+    'TiImageLayout', 'TiFormat', 'TiFilter', 'TiAddressMode',
+
+    # handles
+    'TiRuntime', 'TiAotModule', 'TiMemory', 'TiImage',
+    'TiKernel', 'TiComputeGraph', 'TiSampler',
+
+    # structures
+    'TiCapabilityLevelInfo', 'TiMemoryAllocateInfo', 'TiMemorySlice',
+    'TiNdShape', 'TiNdArray', 'TiImageOffset', 'TiImageExtent',
+    'TiImageAllocateInfo', 'TiImageSlice', 'TiSamplerCreateInfo',
+    'TiTexture', 'TiScalarValue', 'TiScalar', 'TiTensorValue',
+    'TiTensorValueWithLength', 'TiTensor', 'TiArgumentValue',
+    'TiArgument', 'TiNamedArgument',
+
+    # methods
+    'ti_get_version', 'ti_get_available_archs',
+    'ti_get_last_error', 'ti_set_last_error',
+    'ti_create_runtime', 'ti_destroy_runtime',
+    'ti_load_aot_module', 'ti_create_aot_module', 'ti_destroy_aot_module',
+    'ti_get_aot_module_kernel', 'ti_get_aot_module_compute_graph',
+    'ti_launch_kernel', 'ti_launch_compute_graph',
+    'ti_allocate_memory', 'ti_free_memory', 'ti_map_memory', 'ti_unmap_memory',
+    'ti_allocate_image', 'ti_free_image',
+    'ti_create_sampler', 'ti_destroy_sampler',
+    'ti_copy_memory_device_to_device', 'ti_copy_image_device_to_device',
+    'ti_track_image_ext', 'ti_transition_image',
+    'ti_flush', 'ti_wait'
+]
 
 
-def ti_get_version() -> c_uint32:
+def ti_get_version() -> int:
     """Get the current taichi version."""
 
-    return c_ti_get_version()
+    return TAICHI_C_API.ti_get_version()
 
 
 def ti_get_available_archs() -> tuple[c_uint32, Array[TiArch]]:
@@ -20,8 +68,11 @@ def ti_get_available_archs() -> tuple[c_uint32, Array[TiArch]]:
     - The Runtime library is compiled with its support;
     - The current platform is installed with a capable hardware or an emulation software.
 
-    An available arch has at least one device available, i.e., device index 0 is always available.
-    If an arch is not available on the current platform, a call to ti_create_runtime with that arch is guaranteed failing.
+    An available arch has at least one device available,
+    i.e., device index 0 is always available.
+
+    If an arch is not available on the current platform,
+    a call to ti_create_runtime with that arch is guaranteed failing.
 
     **WARNING** Please also note that the order or returned archs is undefined.
     """
@@ -29,12 +80,12 @@ def ti_get_available_archs() -> tuple[c_uint32, Array[TiArch]]:
     arch_count = c_uint32(TI_MAX_ARCH_COUNT)
     arch_list = (c_uint32 * TI_MAX_ARCH_COUNT)()
 
-    c_ti_get_available_archs(byref(arch_count), arch_list)
+    TAICHI_C_API.ti_get_available_archs(byref(arch_count), arch_list)
 
     return arch_count, arch_list
 
 
-def ti_get_last_error(message_size: c_uint64) -> tuple[str, TiError]:
+def ti_get_last_error(message_size: int) -> tuple[str, int]:
     """Gets the last error raised by Taichi C-API invocations.
 
      Returns the semantic error message and error code.
@@ -42,10 +93,12 @@ def ti_get_last_error(message_size: c_uint64) -> tuple[str, TiError]:
     :param message_size: `Size of textual error message in message`
     """
 
-    message_buffer = create_string_buffer(message_size.value)
+    size = c_uint64(message_size)
+    message_buffer = create_string_buffer(size.value)
 
-    error_code = c_ti_get_last_error(byref(message_size), message_buffer)
-    error_message = string_at(message_buffer, message_size.value).decode(
+    error_code = TAICHI_C_API.ti_get_last_error(byref(size),
+                                                message_buffer)
+    error_message = string_at(message_buffer, size.value).decode(
         'utf-8')
 
     return error_message, error_code
@@ -56,10 +109,11 @@ def ti_set_last_error(error: TiError, message: str) -> None:
     invocations.
 
     :param error: `Semantic error code.`
-    :param message: `A null-terminated string of the textual error message or nullptr for empty error message.`
+    :param message: `A null-terminated string of the textual
+     error message or nullptr for empty error message.`
     """
 
-    c_ti_set_last_error(error, message.encode('utf-8'))
+    TAICHI_C_API.ti_set_last_error(error, message.encode('utf-8'))
 
 
 def ti_allocate_memory(runtime: TiRuntime,
@@ -70,24 +124,25 @@ def ti_allocate_memory(runtime: TiRuntime,
          A TiMemory instance.
     """
 
-    address = c_ti_allocate_memory(runtime, byref(allocate_info))
+    address = TAICHI_C_API.ti_allocate_memory(runtime,
+                                              byref(allocate_info))
     return cast(address, TiMemory)
 
 
 def ti_free_memory(runtime: TiRuntime, memory: TiMemory) -> None:
     """Frees a memory allocation."""
 
-    c_ti_free_memory(runtime, memory)
+    TAICHI_C_API.ti_free_memory(runtime, memory)
 
 
-def ti_map_memory(runtime: TiRuntime, memory: TiMemory) -> c_void_p:
+def ti_map_memory(runtime: TiRuntime, memory: TiMemory) -> TiMemory:
     """Maps a device memory to a host-addressable space.
 
     You **must** ensure that the device is not being used by any device
     command before the mapping.
     """
 
-    return c_ti_map_memory(runtime, memory)
+    return TAICHI_C_API.ti_map_memory(runtime, memory)
 
 
 def ti_unmap_memory(runtime: TiRuntime, memory: TiMemory) -> None:
@@ -98,7 +153,7 @@ def ti_unmap_memory(runtime: TiRuntime, memory: TiMemory) -> None:
     previously mapped host-addressable space.
     """
 
-    c_ti_unmap_memory(runtime, memory)
+    TAICHI_C_API.ti_unmap_memory(runtime, memory)
 
 
 def ti_allocate_image(runtime: TiRuntime,
@@ -109,13 +164,13 @@ def ti_allocate_image(runtime: TiRuntime,
          A TiImage instance.
     """
 
-    return c_ti_allocate_image(runtime, byref(allocate_info))
+    return TAICHI_C_API.ti_allocate_image(runtime, byref(allocate_info))
 
 
 def ti_free_image(runtime: TiRuntime, image: TiImage) -> None:
     """Frees an image allocation."""
 
-    c_ti_free_image(runtime, image)
+    TAICHI_C_API.ti_free_image(runtime, image)
 
 
 def ti_create_sampler(runtime: TiRuntime,
@@ -130,7 +185,7 @@ def ti_create_sampler(runtime: TiRuntime,
         TiSampler: The created sampler.
     """
 
-    address = c_ti_create_sampler(runtime, byref(create_info))
+    address = TAICHI_C_API.ti_create_sampler(runtime, byref(create_info))
     return cast(address, TiSampler)
 
 
@@ -142,7 +197,7 @@ def ti_destroy_sampler(runtime: TiRuntime, sampler: TiSampler) -> None:
         sampler (TiSampler): The sampler to be destroyed.
     """
 
-    c_ti_destroy_sampler(runtime, sampler)
+    TAICHI_C_API.ti_destroy_sampler(runtime, sampler)
 
 
 def ti_copy_memory_device_to_device(runtime: TiRuntime, src: TiMemorySlice,
@@ -153,14 +208,19 @@ def ti_copy_memory_device_to_device(runtime: TiRuntime, src: TiMemorySlice,
     The two subsections must not overlap.
     """
 
-    c_ti_copy_memory_device_to_device(runtime, byref(src), byref(dst))
+    TAICHI_C_API.ti_copy_memory_device_to_device(runtime, byref(src),
+                                                 byref(dst))
 
 
 def ti_copy_image_device_to_device(runtime: TiRuntime, src: TiImageSlice,
                                    dst: TiImageSlice) -> None:
-    """"""
+    """Copies the image data in a contiguous subsection of the
+    device image to another subsection.
 
-    c_ti_copy_image_device_to_device(runtime, byref(src), byref(dst))
+    The two subsections *must not* overlap."""
+
+    TAICHI_C_API.ti_copy_image_device_to_device(runtime, byref(src),
+                                                byref(dst))
 
 
 def ti_track_image_ext(runtime: TiRuntime, image: TiImage,
@@ -172,7 +232,7 @@ def ti_track_image_ext(runtime: TiRuntime, image: TiImage,
     by external procedures.
     """
 
-    c_ti_track_image_ext(runtime, image, layout)
+    TAICHI_C_API.ti_track_image_ext(runtime, image, layout)
 
 
 def ti_transition_image(runtime: TiRuntime, image: TiImage,
@@ -183,7 +243,7 @@ def ti_transition_image(runtime: TiRuntime, image: TiImage,
      to enforce an image layout for external procedures to use.
      """
 
-    c_ti_transition_image(runtime, image, layout)
+    TAICHI_C_API.ti_transition_image(runtime, image, layout)
 
 
 def ti_launch_kernel(runtime: TiRuntime,
@@ -196,8 +256,8 @@ def ti_launch_kernel(runtime: TiRuntime,
     as in the source code.
     """
 
-    c_ti_launch_kernel(runtime, kernel, num_args,
-                       (TiArgument * num_args)(*args))
+    TAICHI_C_API.ti_launch_kernel(runtime, kernel, num_args,
+                                  (TiArgument * num_args)(*args))
 
 
 def ti_launch_compute_graph(runtime: TiRuntime, graph: TiComputeGraph,
@@ -208,8 +268,8 @@ def ti_launch_compute_graph(runtime: TiRuntime, graph: TiComputeGraph,
     The named arguments **must** have the same count, names, and types
     as in the source code."""
 
-    c_ti_launch_compute_graph(runtime, graph, num_args,
-                              (TiNamedArgument * num_args)(*named_args))
+    TAICHI_C_API.ti_launch_compute_graph(runtime, graph, num_args,
+                                         (TiNamedArgument * num_args)(*named_args))
 
 
 def ti_flush(runtime: TiRuntime) -> None:
@@ -217,7 +277,7 @@ def ti_flush(runtime: TiRuntime) -> None:
     for execution.
     """
 
-    c_ti_flush(runtime)
+    TAICHI_C_API.ti_flush(runtime)
 
 
 def ti_wait(runtime: TiRuntime) -> None:
@@ -226,7 +286,7 @@ def ti_wait(runtime: TiRuntime) -> None:
      Any invoked command that has not been submitted is submitted first.
      """
 
-    c_ti_wait(runtime)
+    TAICHI_C_API.ti_wait(runtime)
 
 
 def ti_create_runtime(arch: TiArch, device: int) -> TiRuntime:
@@ -236,18 +296,19 @@ def ti_create_runtime(arch: TiArch, device: int) -> TiRuntime:
         a TiRuntime instance.
     """
 
-    address = c_ti_create_runtime(arch, device)
+    address = TAICHI_C_API.ti_create_runtime(arch, device)
     return cast(address, TiRuntime)
 
 
 def ti_destroy_runtime(runtime: TiRuntime) -> None:
     """Destroys a Taichi Runtime."""
 
-    c_ti_destroy_runtime(runtime)
+    TAICHI_C_API.ti_destroy_runtime(runtime)
 
 
 def ti_set_runtime_capabilities_ext(runtime: TiRuntime,
-                                    capabilities: List[TiCapabilityLevelInfo]) -> None:
+                                    capabilities: List[
+                                        TiCapabilityLevelInfo]) -> None:
     """Force override the list of available capabilities in the runtime instance.
 
     Args:
@@ -258,10 +319,13 @@ def ti_set_runtime_capabilities_ext(runtime: TiRuntime,
     capability_count = len(capabilities)
     capabilities_array = (TiCapabilityLevelInfo * capability_count)(*capabilities)
 
-    c_ti_set_runtime_capabilities_ext(runtime, capability_count,capabilities_array)
+    TAICHI_C_API.ti_set_runtime_capabilities_ext(runtime,
+                                                 capability_count,
+                                                 capabilities_array)
 
 
-def ti_get_runtime_capabilities(runtime: TiRuntime) -> List[TiCapabilityLevelInfo]:
+def ti_get_runtime_capabilities(runtime: TiRuntime) -> List[
+    TiCapabilityLevelInfo]:
     """Gets all capabilities available on the runtime instance.
 
     Args:
@@ -272,10 +336,13 @@ def ti_get_runtime_capabilities(runtime: TiRuntime) -> List[TiCapabilityLevelInf
     """
 
     capability_count = c_uint32()
-    c_ti_get_runtime_capabilities(runtime, byref(capability_count), None)
+    TAICHI_C_API.ti_get_runtime_capabilities(runtime,
+                                             byref(capability_count), None)
 
     capabilities_array = (TiCapabilityLevelInfo * capability_count.value)()
-    c_ti_get_runtime_capabilities(runtime, byref(capability_count), capabilities_array)
+    TAICHI_C_API.ti_get_runtime_capabilities(runtime,
+                                             byref(capability_count),
+                                             capabilities_array)
 
     return list(capabilities_array)
 
@@ -290,7 +357,7 @@ def ti_load_aot_module(runtime: TiRuntime, filepath: str) -> TiAotModule:
         a TiAotModule instance.
     """
 
-    address = c_ti_load_aot_module(runtime, filepath.encode('utf-8'))
+    address = TAICHI_C_API.ti_load_aot_module(runtime,filepath.encode('utf-8'))
     return cast(address, TiAotModule)
 
 
@@ -305,13 +372,13 @@ def ti_create_aot_module(runtime: TiRuntime, tcm: c_void_p,
         a TiAotModule instance.
      """
 
-    return c_ti_create_aot_module(runtime, tcm, size)
+    return TAICHI_C_API.ti_create_aot_module(runtime, tcm, size)
 
 
 def ti_destroy_aot_module(module: TiAotModule) -> None:
     """Destroys a loaded AOT module and releases all related resources."""
 
-    c_ti_destroy_aot_module(module)
+    TAICHI_C_API.ti_destroy_aot_module(module)
 
 
 def ti_get_aot_module_kernel(module: TiAotModule,
@@ -325,7 +392,7 @@ def ti_get_aot_module_kernel(module: TiAotModule,
         a TiKernel instance.
     """
 
-    address = c_ti_get_aot_module_kernel(module, kernel_name.encode('utf-8'))
+    address = TAICHI_C_API.ti_get_aot_module_kernel(module, kernel_name.encode('utf-8'))
     return cast(address, TiKernel)
 
 
@@ -340,6 +407,5 @@ def ti_get_aot_module_compute_graph(module: TiAotModule,
         a TiComputeGraph instance.
     """
 
-    address = c_ti_get_aot_module_compute_graph(module,
-                                                graph_name.encode('utf-8'))
+    address = TAICHI_C_API.ti_get_aot_module_compute_graph(module, graph_name.encode('utf-8'))
     return cast(address, TiComputeGraph)

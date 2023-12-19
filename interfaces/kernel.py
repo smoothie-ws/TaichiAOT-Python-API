@@ -1,40 +1,45 @@
-import time
 from ctypes import POINTER, cast
 from typing import Any
 
 import numpy as np
 
-from .KernelArgument import kernel_argument
-from .Runtime import runtime
-from .c_api import *
-from .utils import ctypes_datatype, get_last_error
+from .kernel_argument import KernelArgument
+from .runtime import Runtime
+from taichiAOT.c_api import *
+from taichiAOT._utils import ctypes_datatype, get_last_error
 
 
-class kernel:
+class Kernel:
     def __init__(self, kernel_instance: TiKernel):
         self._kernel: TiKernel = kernel_instance
         self.arg_params = []
         self.kernel_params = []
 
-    def set_arguments(self, ti_runtime: runtime, *args):
+    def set_arguments(self, ti_runtime: Runtime, *args):
         for arg in args:
-            argument = kernel_argument(ti_runtime, arg)
+            argument = KernelArgument(ti_runtime, arg)
             self.arg_params.append(argument)
             self.kernel_params.append(argument.get_ti_argument)
 
         get_last_error()
 
-    def launch(self, ti_runtime: runtime, *args) -> list[Any]:
+    def launch(self, ti_runtime: Runtime, *args):
         if args is not None:
             self.set_arguments(ti_runtime, *args)
 
-        ti_launch_kernel(ti_runtime.runtime_instance, self._kernel, len(self.kernel_params), self.kernel_params)
+        get_last_error()
+        ti_launch_kernel(ti_runtime.runtime_instance, self._kernel,
+                         len(self.kernel_params), self.kernel_params)
+
         ti_runtime.wait()
 
+    def get_arguments(self) -> list[Any]:
         res_params = []
         for param in self.arg_params:
             if param.type == TiArgumentType.TI_ARGUMENT_TYPE_NDARRAY:
-                data_array = cast(param.allocated_memory.map(), POINTER(ctypes_datatype(param.og) * param.og.size)).contents
+                data_array = cast(param.allocated_memory.map(),
+                                  POINTER(ctypes_datatype(param.og) * param.og.size)).contents
+
                 res_params.append(np.array(data_array).reshape(param.og.shape))
                 param.allocated_memory.unmap()
                 param.allocated_memory.free()
