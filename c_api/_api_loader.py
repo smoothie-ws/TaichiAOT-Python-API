@@ -1,10 +1,9 @@
 import os
 import sys
 from ctypes import CDLL
-from typing import Callable, Any
 
-from .exceptions import *
 from ._bindings import TAICHI_C_API_METHODS
+from .exceptions import *
 
 
 class C_API(object):
@@ -95,7 +94,7 @@ class C_API(object):
 
         for method_name, attributes in TAICHI_C_API_METHODS.items():
             f = getattr(self._cdll, method_name)
-            print(self._cdll.get)
+
             if 'restype' in attributes:
                 f.restype = attributes['restype']
 

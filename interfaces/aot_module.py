@@ -1,3 +1,5 @@
+from ctypes import c_void_p
+
 from taichiAOT._utils import *
 
 from .compute_graph import ComputeGraph

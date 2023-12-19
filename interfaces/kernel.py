@@ -6,7 +6,8 @@ import numpy as np
 from .kernel_argument import KernelArgument
 from .runtime import Runtime
 from taichiAOT.c_api import *
-from taichiAOT._utils import ctypes_datatype, get_last_error
+from taichiAOT._utils import get_last_error
+from taichiAOT.interfaces._type_maps import get_ctypes_data_type
 
 
 class Kernel:
@@ -31,14 +32,13 @@ class Kernel:
         ti_launch_kernel(ti_runtime.runtime_instance, self._kernel,
                          len(self.kernel_params), self.kernel_params)
 
-        ti_runtime.wait()
-
     def get_arguments(self) -> list[Any]:
         res_params = []
         for param in self.arg_params:
             if param.type == TiArgumentType.TI_ARGUMENT_TYPE_NDARRAY:
                 data_array = cast(param.allocated_memory.map(),
-                                  POINTER(ctypes_datatype(param.og) * param.og.size)).contents
+                                  POINTER(get_ctypes_data_type(
+                                      param.og) * param.og.size)).contents
 
                 res_params.append(np.array(data_array).reshape(param.og.shape))
                 param.allocated_memory.unmap()

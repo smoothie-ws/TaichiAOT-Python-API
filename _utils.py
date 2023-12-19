@@ -1,51 +1,6 @@
-from ctypes import (c_int8, c_int16, c_int32, c_int64, c_uint8, c_uint16,
-                    c_uint32, c_uint64, c_float, c_double, c_void_p)
-
-from numpy import dtype, ndarray
+from ctypes import c_void_p
 
 from .c_api import *
-
-ti_data_type = {
-    dtype('int8'): TiDataType.TI_DATA_TYPE_I8,
-    dtype('int16'): TiDataType.TI_DATA_TYPE_I16,
-    dtype('int32'): TiDataType.TI_DATA_TYPE_I32,
-    dtype('int64'): TiDataType.TI_DATA_TYPE_I64,
-    dtype('uint8'): TiDataType.TI_DATA_TYPE_U8,
-    dtype('uint16'): TiDataType.TI_DATA_TYPE_U16,
-    dtype('uint32'): TiDataType.TI_DATA_TYPE_U32,
-    dtype('uint64'): TiDataType.TI_DATA_TYPE_U64,
-    dtype('float16'): TiDataType.TI_DATA_TYPE_F16,
-    dtype('float32'): TiDataType.TI_DATA_TYPE_F32,
-    dtype('float64'): TiDataType.TI_DATA_TYPE_F64
-}
-
-ctypes_data_type = {
-    dtype('int8'): c_int8,
-    dtype('int16'): c_int16,
-    dtype('int32'): c_int32,
-    dtype('int64'): c_int64,
-    dtype('uint8'): c_uint8,
-    dtype('uint16'): c_uint16,
-    dtype('uint32'): c_uint32,
-    dtype('uint64'): c_uint64,
-    dtype('float16'): c_float,
-    dtype('float32'): c_float,
-    dtype('float64'): c_double
-}
-
-taichi_argument_data_type = {
-    int: TiArgumentType.TI_ARGUMENT_TYPE_I32,
-    float: TiArgumentType.TI_ARGUMENT_TYPE_F32,
-    ndarray: TiArgumentType.TI_ARGUMENT_TYPE_NDARRAY
-}
-
-
-def taichi_datatype(array: ndarray):
-    return ti_data_type[array.dtype]
-
-
-def ctypes_datatype(array: ndarray):
-    return ctypes_data_type[array.dtype]
 
 
 def get_version() -> int:
